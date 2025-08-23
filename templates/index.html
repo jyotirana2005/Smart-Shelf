@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartShelf - Your Smart Kitchen Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            background-color: #f7f9fc;
+            color: #1e293b;
+        }
+
+        /* Container */
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        /* Header */
+        header {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 20px 0;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn.primary {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+
+        .btn.primary:hover {
+            background-color: #1e40af;
+        }
+
+        .btn.large {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+
+        /* Hero */
+        .hero {
+            background-color: #e2e8f0;
+            padding: 60px 0;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .hero-text {
+            flex: 1;
+        }
+
+        .hero-text h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: #0f172a;
+        }
+
+        .hero-text p {
+            font-size: 18px;
+            margin-bottom: 25px;
+        }
+
+        .hero-image {
+            flex: 1;
+            text-align: center;
+        }
+
+        .hero-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Sections */
+        .section-title {
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #0f172a;
+        }
+
+        /* Features */
+        .features {
+            background-color: #ffffff;
+            padding: 80px 0;
+        }
+
+        .features-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .feature-card {
+            background-color: #f1f5f9;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1 1 250px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card img {
+            height: 60px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 16px;
+            color: #475569;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            background-color: #f8fafc;
+            padding: 80px 0;
+        }
+
+        .steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .step {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1 1 220px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .step span {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            color: #2563eb;
+        }
+
+        /* About */
+        .about {
+            background-color: #ffffff;
+            padding: 80px 0;
+        }
+
+        .about-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .about-text {
+            flex: 1;
+        }
+
+        .about-text h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .about-text p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .about-image {
+            flex: 1;
+            text-align: center;
+        }
+
+        .about-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Contact */
+        .contact {
+            background: linear-gradient(to right, #f9fbfc, #eef2f7);
+            padding: 80px 0;
+        }
+
+        .contact-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .contact-wrapper {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .contact-form,
+        .contact-info {
+            flex: 1 1 45%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        .contact-form button {
+            margin-top: 10px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        .contact-form button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .contact-info p {
+            margin-bottom: 12px;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .contact-wrapper {
+                flex-direction: column;
+                gap: 30px;
+                padding: 30px 20px;
+            }
+
+            .contact-form,
+            .contact-info {
+                flex: 1 1 100%;
+            }
+        }
+
+        /* Footer */
+        footer {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 30px 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+
+            .hero-content,
+            .about-content {
+                flex-direction: column;
+            }
+
+            .nav {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container nav">
+            <div class="logo">SmartShelf</div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how">How it Works</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+            <a href="/login" class="btn primary">Sign In</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Welcome to SmartShelf</h1>
+                <p>Your AI-powered kitchen & inventory assistant. Track, predict, and reduce waste — smartly.</p>
+                <a href="/signup" class="btn large">Get Started</a>
+            </div>
+            <div class="hero-image">
+                <p style="font-size: 5rem;">🏡🧵🧃</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <p style="font-size: 3rem;">⏳</p>
+                    <h3>Expiry Tracking</h3>
+                    <p>Get automatic alerts when items near expiry.</p>
+                </div>
+                <div class="feature-card">
+                    <p style="font-size: 3rem;">🧰</p>
+                    <h3>Usage Prediction</h3>
+                    <p>Track usage patterns and get AI-based predictions.</p>
+                </div>
+                <div class="feature-card">
+                    <p style="font-size: 3rem;">🖼️</p>
+                    <h3>Barcode Scanning</h3>
+                    <p>Scan grocery items easily using your camera or mobile.</p>
+                </div>
+                <div class="feature-card">
+                    <p style="font-size: 3rem;">🔄</p>
+                    <h3>Restock Reminders</h3>
+                    <p>Never run out of essentials. Smart reminders to restock.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works" id="how">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <span>1</span>
+                    <h3>Scan Items</h3>
+                    <p>Use barcode or manual entry to add kitchen items.</p>
+                </div>
+                <div class="step">
+                    <span>2</span>
+                    <h3>Track Smartly</h3>
+                    <p>Monitor stock levels, expiry dates, and usage trends.</p>
+                </div>
+                <div class="step">
+                    <span>3</span>
+                    <h3>AI Predicts</h3>
+                    <p>Our ML model predicts when you’ll need to restock.</p>
+                </div>
+                <div class="step">
+                    <span>4</span>
+                    <h3>Get Alerts</h3>
+                    <p>Receive notifications for expiry and waste alerts.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section class="about" id="about">
+        <div class="container about-content">
+            <div class="about-text">
+                <h2>About SmartShelf</h2>
+                <p>
+                    SmartShelf is a smart kitchen assistant project built using Python, Flask, and ML models to help
+                    users track groceries, reduce food waste, and automate restocking. Designed for households, small
+                    retailers, and restaurants.
+                </p>
+                <p>
+                    It's your all-in-one smart kitchen inventory solution.
+                </p>
+            </div>
+            <div class="about-image">
+                <p style="font-size: 5rem;">🥒🛋️🥜</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact" id="contact">
+        <div class="container contact-container">
+            <h2 class="section-title">Contact Us</h2>
+            <div class="contact-wrapper">
+                <!-- Form -->
+                <form action="/contact" method="POST" class="contact-form">
+                    <input type="text" name="name" placeholder="Your Name" required />
+                    <input type="email" name="email" placeholder="Your Email" required />
+                    <textarea name="message" rows="5" placeholder="Your Message" required></textarea>
+                    <button type="submit" class="btn primary">Send Message</button>
+                </form>
+
+                <!-- Info -->
+                <div class="contact-info">
+                    <h3>Reach Out</h3>
+                    <p>📧 <strong>Email:</strong> support@smartshelf.tech</p>
+                    <p>📞 <strong>Phone:</strong> +91-9876543210</p>
+                    <p>📍 <strong>Location:</strong> New Delhi, India</p>
+                    <p>⏰ <strong>Hours:</strong> Mon–Fri, 9am–6pm</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-content">
+            <p>&copy; 2025 SmartShelf. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">GitHub</a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

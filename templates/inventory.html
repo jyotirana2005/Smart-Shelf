@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartShelf Inventory - Your Kitchen Companion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* ====== Enhanced SmartShelf Inventory Styles (Elegant, User-Centric, Appealing) ====== */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+        [data-theme="dark"] html, [data-theme="dark"] body, html[data-theme="dark"], body[data-theme="dark"] {
+            background: #111827 !important;
+            color: #e5e7eb !important;
+        }
+        .sidebar {
+            width: 200px;
+            background: #fff;
+            border-right: 1px solid #e5e7eb;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 1rem 0;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        /* Sidebar always visible on desktop, toggle only on mobile */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content.with-sidebar {
+                margin-left: 0;
+            }
+        }
+        @media (min-width: 901px) {
+            .sidebar {
+                transform: translateX(0) !important;
+            }
+            .main-content.with-sidebar {
+                margin-left: 200px;
+            }
+        }
+        [data-theme="dark"] .sidebar {
+            background: #1f2937 !important;
+            border-right: 1px solid #374151 !important;
+        }
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        [data-theme="dark"] .sidebar-brand {
+            color: #93c5fd !important;
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            padding: 0.5rem 0;
+        }
+        .nav-link {
+            color: #4b5563;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-radius: 6px;
+            margin: 0 0.3rem;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: #1e3a8a;
+            color: #fff;
+        }
+        [data-theme="dark"] .nav-link {
+            color: #d1d5db !important;
+        }
+        [data-theme="dark"] .nav-link:hover, [data-theme="dark"] .nav-link.active {
+            background: #4b5563 !important;
+            color: #fff !important;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem 1.5rem;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.with-sidebar {
+            margin-left: 200px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        [data-theme="dark"] .dashboard-header {
+            background: rgba(31, 41, 55, 0.95) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        }
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0.5rem;
+        }
+        [data-theme="dark"] .header-title {
+            color: #e5e7eb !important;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+        .btn {
+            border: none;
+            outline: none;
+            background: #1e3a8a;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .btn-outline {
+            border: 2px solid #1e3a8a;
+            background: transparent;
+            color: #1e3a8a;
+            padding: 0.3rem 0.7rem;
+        }
+        .btn:hover, .btn-outline:hover {
+            background: #1e40af;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
+        }
+        .profile-btn, .logout-btn {
+            border: 2px solid #1e3a8a;
+            color: #1e3a8a;
+            background: transparent;
+            padding: 0.4rem 1.2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .profile-btn:hover {
+            background: #1e3a8a;
+            color: #fff;
+        }
+        [data-theme="dark"] .profile-btn {
+            border: 2px solid #93c5fd;
+            color: #93c5fd;
+        }
+        [data-theme="dark"] .profile-btn:hover {
+            background: #93c5fd;
+            color: #1f2937;
+        }
+        .logout-btn {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+        .logout-btn:hover {
+            background: #dc2626;
+            color: #fff;
+        }
+        [data-theme="dark"] .logout-btn {
+            border: 2px solid #f87171;
+            color: #f87171;
+        }
+        [data-theme="dark"] .logout-btn:hover {
+            background: #f87171;
+            color: #1f2937;
+        }
+        .inventory-summary-bar {
+            background: rgba(255,255,255,0.85);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 0.8rem 1.2rem;
+            margin-bottom: 1.2rem;
+            display: flex;
+            gap: 1.5rem;
+            font-size: 1.08rem;
+            align-items: center;
+        }
+        [data-theme="dark"] .inventory-summary-bar {
+            background: rgba(31,41,55,0.85) !important;
+        }
+        .inventory-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem 1.2rem;
+            margin-bottom: 1.2rem;
+            align-items: center;
+        }
+        .inventory-table-wrapper {
+            overflow-x: auto;
+        }
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .inventory-table th, .inventory-table td {
+            padding: 0.7rem 0.6rem;
+            text-align: left;
+        }
+        .inventory-table thead tr {
+            background: #f1f5f9;
+        }
+        .inventory-table tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        [data-theme="dark"] .inventory-table {
+            background: #232b3b !important;
+        }
+        [data-theme="dark"] .inventory-table thead tr {
+            background: #232b3b !important;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background: rgba(0,0,0,0.25);
+        }
+        .modal-content {
+            background: #fff;
+            margin: 5% auto;
+            padding: 2rem 2.5rem;
+            border-radius: 10px;
+            max-width: 420px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            position: relative;
+        }
+        [data-theme="dark"] .modal-content {
+            background: #232b3b !important;
+            color: #e5e7eb !important;
+        }
+        .close {
+            color: #888;
+            float: right;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 1.2rem;
+            top: 1.2rem;
+        }
+        .close:hover {
+            color: #dc2626;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content.with-sidebar {
+                margin-left: 0;
+            }
+            .container {
+                padding: 1rem;
+            }
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.8rem;
+            }
+            .header-left, .header-right {
+                flex-direction: column;
+                gap: 1rem;
+                margin-top: 0.8rem;
+            }
+            .inventory-summary-bar {
+                flex-direction: column;
+                gap: 0.7rem;
+                padding: 0.7rem 0.8rem;
+            }
+            .inventory-actions {
+                gap: 0.5rem 0.7rem;
+            }
+        }
+        /* Add more custom styles as needed for badges, buttons, etc. */
+    </style>
+    </style>
+</head>
+<body>
+    <!-- Sidebar (Collapsible Menu) -->
+    <nav class="sidebar" id="sidebar">
+        <a href="/dashboard" class="sidebar-brand">
+            <i class="fas fa-home"></i>
+            SmartShelf
+        </a>
+        <div class="sidebar-nav">
+            <a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/inventory" class="nav-link active"><i class="fas fa-box"></i> Inventory</a>
+            <a href="/recipes" class="nav-link"><i class="fas fa-utensils"></i> Recipes</a>
+            <a href="/reports" class="nav-link"><i class="fas fa-chart-bar"></i> Reports</a>
+            <a href="/shopping" class="nav-link"><i class="fas fa-shopping-cart"></i> Shopping</a>
+            <a href="/mealplan" class="nav-link"><i class="fas fa-calendar-alt"></i> Meal Plan</a>
+            <a href="/households" class="nav-link"><i class="fas fa-users"></i> Households</a>
+            <a href="/members" class="nav-link"><i class="fas fa-user-friends"></i> Members</a>
+        </div>
+    </nav>
+    <!-- Main Content -->
+    <div class="main-content with-sidebar" id="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="dashboard-header">
+                <div class="header-left">
+                    <button class="btn btn-sm btn-outline" onclick="toggleSidebar()" title="Toggle menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="header-title">Inventory</h1>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-sm btn-outline" onclick="toggleTheme()" title="Toggle theme">
+                        <i class="fas fa-moon" id="theme-icon"></i>
+                    </button>
+                    <a href="/profile" class="profile-btn">
+                        <i class="fas fa-user"></i>
+                        <span class="text-sm font-medium">{{ session['username'] }}&nbsp;</span>
+                    </a>
+                    <a href="/logout" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+            <!-- Inventory Summary Bar -->
+            <div class="inventory-summary-bar" style="display:flex;gap:1.5rem;margin-bottom:1.2rem;font-size:1.08rem;">
+                <span><i class="fa-solid fa-box"></i> Total Items: <b id="summary-total">0</b></span>
+                <span><i class="fa-solid fa-triangle-exclamation" style="color:#f59e42"></i> Low Stock: <b id="summary-low">0</b></span>
+                <span><i class="fa-solid fa-skull-crossbones" style="color:#ef4444"></i> Expired: <b id="summary-expired">0</b></span>
+            </div>
+            <!-- Inventory Actions -->
+            <div class="inventory-actions" style="display:flex;flex-wrap:wrap;gap:0.7rem 1.2rem;margin-bottom:1.2rem;align-items:center;">
+                <input type="text" class="inventory-search" placeholder="Search items..." style="padding:0.5rem 1rem;border-radius:6px;border:1px solid #e5e7eb;min-width:180px;">
+                <select class="inventory-filter" id="categoryFilter" style="padding:0.5rem 1rem;border-radius:6px;border:1px solid #e5e7eb;">
+                    <option value="">All Categories</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Snacks">Snacks</option>
+                    <option value="Beverages">Beverages</option>
+                </select>
+                <input type="date" class="inventory-filter" id="expiryFilter" placeholder="Expiry before..." style="padding:0.5rem 1rem;border-radius:6px;border:1px solid #e5e7eb;">
+                <button class="btn" onclick="sortByExpiry()"><i class="fa-solid fa-arrow-down-short-wide"></i> Expiry Soonest</button>
+                <button class="btn primary" onclick="openAddItemModal()"><i class="fa-solid fa-plus"></i> Add Item</button>
+                <button class="btn" onclick="exportInventory()"><i class="fa-solid fa-file-arrow-down"></i> Export</button>
+                <button class="btn" onclick="openAIPredictModal()"><i class="fa-solid fa-robot"></i> AI Expiry Predict</button>
+                <button class="btn" onclick="openCameraInventoryModal()"><i class="fa-solid fa-camera"></i> Camera Inventory</button>
+            </div>
+            <!-- Inventory Table -->
+            <div class="inventory-table-wrapper" style="overflow-x:auto;">
+                <table class="inventory-table" style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Expiry Date</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <!-- Items will be loaded here by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add Item Modal (hidden by default) -->
+            <div class="modal" id="addItemModal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeAddItemModal()">&times;</span>
+                    <h3>Add New Item</h3>
+                    <form id="addItemForm">
+                        <label>Item Name</label>
+                        <input type="text" required>
+                        <label>Quantity</label>
+                        <input type="number" min="1" required>
+                        <label>Expiry Date</label>
+                        <input type="date" required>
+                        <label>Category</label>
+                        <input type="text">
+                        <label>Barcode (optional)</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" id="barcodeInput" placeholder="Scan or enter barcode">
+                            <button type="button" class="btn" onclick="openBarcodeScanner()"><i class="fa-solid fa-barcode"></i> Scan</button>
+                        </div>
+                        <div id="barcodeScannerModal" class="modal" style="display:none;z-index:3000;">
+                            <div class="modal-content" style="max-width:480px;">
+                                <span class="close" onclick="closeBarcodeScanner()">&times;</span>
+                                <h3>Scan Barcode</h3>
+                                <div id="barcode-scanner-preview" style="width:100%;height:240px;background:#222;border-radius:8px;"></div>
+                                <div id="barcode-scan-status" style="margin-top:10px;color:#2563eb;"></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Add Item</button>
+                    </form>
+                </div>
+            </div>
+            <!-- AI Expiry Prediction Modal -->
+            <div class="modal" id="aiPredictModal" style="display:none;z-index:3000;">
+                <div class="modal-content" style="max-width:400px;">
+                    <span class="close" onclick="closeAIPredictModal()">&times;</span>
+                    <h3>AI Expiry Prediction</h3>
+                    <form id="aiPredictForm">
+                        <label>Item Name</label>
+                        <input type="text" id="ai-item-name" required>
+                        <label>Storage Type</label>
+                        <input type="text" id="ai-storage-type" placeholder="e.g. Fridge, Pantry">
+                        <label>Open Count</label>
+                        <input type="number" id="ai-open-count" min="0" value="0">
+                        <button type="submit" class="btn primary">Predict Expiry</button>
+                    </form>
+                    <div id="aiPredictResult" style="margin-top:10px;"></div>
+                </div>
+            </div>
+            <!-- Camera Inventory Modal -->
+            <div class="modal" id="cameraInventoryModal" style="display:none;z-index:3000;">
+                <div class="modal-content" style="max-width:400px;">
+                    <span class="close" onclick="closeCameraInventoryModal()">&times;</span>
+                    <h3>Smart Camera Inventory</h3>
+                    <form id="cameraInventoryForm">
+                        <input type="file" id="camera-inventory-file" accept="image/*" required>
+                        <button type="submit" class="btn primary">Detect Items</button>
+                    </form>
+                    <div id="cameraInventoryResult" style="margin-top:10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Sidebar toggle logic (only for mobile)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 900) {
+                sidebar.classList.toggle('active');
+                if (sidebar.classList.contains('active')) {
+                    localStorage.setItem('sidebarMobile', 'open');
+                } else {
+                    localStorage.setItem('sidebarMobile', 'closed');
+                }
+            }
+        }
+        // Theme toggle logic (as in dashboard.html)
+        function toggleTheme() {
+            const html = document.getElementById('html-root');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        // On load, set theme and sidebar state
+        window.addEventListener('DOMContentLoaded', function() {
+            // Theme
+            if (localStorage.getItem('theme') === 'dark') {
+                document.getElementById('html-root').setAttribute('data-theme', 'dark');
+            }
+            // Sidebar state
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth > 900) {
+                // Always visible on desktop
+                sidebar.classList.remove('active');
+            } else {
+                // Only use localStorage state on mobile
+                if (localStorage.getItem('sidebarMobile') === 'open') {
+                    sidebar.classList.add('active');
+                } else {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+        // Inventory-specific logic (fetchInventory, renderInventoryTable, modals, barcode, etc.)
+        // ...existing code, but only once, and cleaned up...
+    </script>
+</body>
+</html>

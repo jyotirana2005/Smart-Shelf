@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartShelf • Home Dashboard</title>
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        container: { center: false },
+        extend: {
+          colors: {
+            brand: { 50: '#eef5ff', 100: '#d9e8ff', 200: '#b6d2ff', 300: '#8db9ff', 400: '#5d98ff', 500: '#3d7fff', 600: '#2f66e6', 700: '#254fba', 800: '#1f4196', 900: '#1d377a' },
+            mint: { 500: '#2ad5a5' }
+          },
+          boxShadow: { glass: '0 10px 30px rgba(0,0,0,.08)' },
+          keyframes: {
+            fadeUp: { '0%': { opacity: 0, transform: 'translateY(10px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            scaleIn: { '0%': { opacity: 0, transform: 'scale(.98)' }, '100%': { opacity: 1, transform: 'scale(1)' } },
+          },
+          animation: { fadeUp: 'fadeUp .5s ease-out both', scaleIn: 'scaleIn .35s ease-out both' }
+        }
+      }
+    }
+  </script>
+  <!-- Chart.js + Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body { width: 100vw; min-width: 0; }
+    body { min-height: 100vh; background: #f8fafc; }
+    .dark body, body.dark { background: #0f172a !important; color: #f1f5f9 !important; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66)); backdrop-filter: blur(8px); }
+    .dark .glass { background: linear-gradient(180deg, rgba(30,41,59,.60), rgba(15,23,42,.50)); }
+
+    /* Card Flip */
+    .flip { perspective: 1200px; position: relative; }
+    .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s; }
+    .flip:hover .flip-inner { transform: rotateY(180deg); }
+    .flip-face, .flip-back { position: absolute; top: 0; left: 0; width: 100%; height: 100%; backface-visibility: hidden; }
+    .flip-face { z-index: 2; background: transparent; }
+    .flip-back { transform: rotateY(180deg); z-index: 3; background: white; }
+    .dark .flip-back { background: #1e293b; }
+    .flip, .flip-inner { min-height: 350px; }
+
+    /* ===== Sidebar + Layout (space-optimized) ===== */
+    #sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 240px; min-width: 240px;
+      padding: 5rem 0.75rem 0.75rem;
+      transition: width .3s ease, padding .3s ease;
+      z-index: 30;
+    }
+    body.sidebar-collapsed #sidebar {
+      width: 72px; min-width: 72px; padding: 5rem 0.25rem 0.75rem;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    body.sidebar-collapsed #sidebar nav { display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+    body.sidebar-collapsed #sidebar nav a { justify-content: center; padding: .5rem; width: 44px; height: 44px; }
+    body.sidebar-collapsed .sidebar-text { display: none !important; }
+    body.sidebar-collapsed .sidebar-icon { margin-right: 0 !important; }
+    body.sidebar-collapsed .sidebar-sustainability { display: none !important; }
+
+    /* Main wrapper shifts to always fill free space */
+    #pageWrap { max-width: 100vw; padding-left: 240px; transition: padding-left .3s ease; }
+    body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+
+    /* Ensure main stretches; avoid fixed column spans that cause gaps */
+    #pageWrap main { margin: 0 auto; width: 100%; padding: 1.5rem; transition: padding .3s ease; }
+    @media (max-width: 768px) { #pageWrap main { padding: 1rem; } }
+
+    /* Mobile: sidebar off-canvas by default; reveals in collapsed (icon bar) mode */
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      body.sidebar-collapsed #sidebar { display: flex; }
+      #pageWrap { padding-left: 0; }
+      body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+    }
+
+    /* Dark Mode fixes */
+    .dark .glass, .dark .glass * { color: #f1f5f9 !important; }
+    .dark .glass input, .dark .glass select { background: #1e293b !important; color: #f1f5f9 !important; }
+    .dark .glass .text-slate-500, .dark .glass .text-slate-400 { color: #cbd5e1 !important; }
+    .dark .glass .text-slate-800 { color: #f1f5f9 !important; }
+    .dark .glass .bg-white, .dark .glass .bg-slate-50 { background: #1e293b !important; }
+    .dark .glass .border-slate-200, .dark .glass .border-slate-700 { border-color: #334155 !important; }
+
+    /* ===== Tooltips (icons-only state) ===== */
+    body.sidebar-collapsed #sidebar nav a[data-tip] { position: relative; }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: 56px; top: 50%; transform: translateY(-50%);
+      background: rgba(15,23,42,.95); color: #fff; font-size: 12px; line-height: 1; white-space: nowrap;
+      padding: 8px 10px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+      opacity: 1; pointer-events: none; z-index: 40;
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::after { background: rgba(15,23,42,.9); }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::before {
+      content: '';
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      border: 6px solid transparent; border-right-color: rgba(15,23,42,.95);
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::before { border-right-color: rgba(15,23,42,.9); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 w-full min-w-0">
+  <!-- Navbar -->
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200/70 dark:border-slate-800">
+    <div class="container px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="btnSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle sidebar">
+          <i data-lucide="panel-left" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 rounded-xl bg-brand-600 text-white items-center justify-center font-bold">S</span>
+          <span class="text-lg font-semibold">SmartShelf</span>
+        </div>
+      </div>
+      <div class="flex-1 max-w-xl mx-6 hidden md:flex items-center gap-3">
+        <div class="relative group flex-1">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+          <input id="search" placeholder="Search items, recipes, lists…" class="w-full pl-10 pr-4 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition" aria-label="Search inventory">
+        </div>
+      </div>
+      <button class="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open search" id="btnMobileSearch">
+        <i data-lucide="search" class="w-5 h-5" aria-hidden="true"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <button id="btnTheme" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+          <i data-lucide="moon-star" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <button id="btnNotify" class="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="View notifications">
+          <i data-lucide="bell" class="w-5 h-5" aria-hidden="true"></i>
+          <span class="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse"></span>
+        </button>
+        <div class="relative">
+          <button id="btnProfile" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open profile menu">
+            <img src="https://api.dicebear.com/9.x/identicon/svg?seed=smartshelf" class="w-7 h-7 rounded-lg" alt="User avatar"/>
+            <span class="hidden sm:block font-medium" id="username">Household</span>
+            <i data-lucide="chevron-down" class="w-4 h-4" aria-hidden="true"></i>
+          </button>
+          <div id="menuProfile" class="hidden absolute right-0 mt-2 w-48 glass rounded-xl shadow-glass p-2 z-50">
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Profile</button>
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Settings</button>
+            <button onclick="logout()" class="w-full text-left px-3 py-2 rounded-lg text-red-500 hover:bg-white/50 dark:hover:bg-white/10">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <div id="pageWrap" class="w-full px-2 md:px-6 mt-6 grid grid-cols-12 gap-6">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="glass rounded-2xl p-3 shadow-glass transition-all duration-300">
+      <nav class="space-y-1 sidebar-nav-full">
+        <a data-tip="Dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-glass" title="Dashboard"><i data-lucide="gauge" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Dashboard</span></a>
+        <a data-tip="Inventory" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Inventory"><i data-lucide="boxes" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Inventory</span></a>
+        <a data-tip="Alerts" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Alerts"><i data-lucide="alarm-clock" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Alerts</span></a>
+        <a data-tip="Insights" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Insights"><i data-lucide="bot" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Insights</span></a>
+        <a data-tip="Recipes" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Recipes"><i data-lucide="book-open" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Recipes</span></a>
+        <a data-tip="Reports" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Reports"><i data-lucide="file-chart-column" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Reports</span></a>
+        <a data-tip="Voice (Soon)" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Voice (Soon)"><i data-lucide="mic" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Voice (Soon)</span></a>
+      </nav>
+      <div class="mt-4 p-3 rounded-xl bg-gradient-to-r from-brand-600 to-mint-500 text-white sidebar-sustainability">
+        <div class="text-sm opacity-90">This week you saved</div>
+        <div class="text-2xl font-semibold" id="wasteSaved">3.8 kg</div>
+        <div class="text-xs opacity-90 mt-1">of potential food waste 👏</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="col-span-12 space-y-6">
+      <!-- Greeting & Quick Actions -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl xl:text-3xl font-semibold">Welcome back, <span class="text-brand-700 dark:text-brand-400" id="welcomeName">Household User</span> 👋</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Here’s your SmartShelf overview for today.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="px-4 py-2 rounded-xl bg-brand-600 text-white hover:brightness-110 transition">➕ Add Item</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 border border-slate-200/50 dark:border-slate-700 transition">🧾 Upload Bill (OCR)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Top Stats -->
+      <section class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Total Items</span><i data-lucide="boxes" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold" data-counter="256">0</div>
+          <div class="text-xs text-slate-500 mt-1">All locations</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.05s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Expiring Soon</span><i data-lucide="alarm-clock" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-amber-600" data-counter="12">0</div>
+          <div class="text-xs text-slate-500 mt-1">Next 3 days</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.1s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Low Stock</span><i data-lucide="triangle-alert" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-rose-600" data-counter="7">0</div>
+          <div class="text-xs text-slate-500 mt-1">Below threshold</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.15s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Waste Reduced</span><i data-lucide="leaf" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-emerald-600" data-counter="38" data-suffix="%">0</div>
+          <div class="text-xs text-slate-500 mt-1">vs last month</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.2s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Money Saved</span><i data-lucide="wallet" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-emerald-700" data-counter="4250" data-prefix="₹">0</div>
+          <div class="text-xs text-slate-500 mt-1">This month</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.25s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Recipe Matches</span><i data-lucide="cook" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-brand-700" data-counter="18">0</div>
+          <div class="text-xs text-slate-500 mt-1">Based on stock</div>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 xl:col-span-8 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Weekly Consumption Trend</h3>
+            <button type="button" class="text-sm px-3 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 hover:bg-white/60 dark:hover:bg-white/10">Details</button>
+          </div>
+          <div class="h-64"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="col-span-12 xl:col-span-4 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Inventory Breakdown</h3>
+            <span class="text-xs text-slate-500">Category wise</span>
+          </div>
+          <div class="h-64"><canvas id="invChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- Inventory Table + Alerts -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 xl:col-span-8 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">Inventory Quick View</h3>
+            <div class="flex gap-2">
+              <input placeholder="Search…" class="h-9 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 outline-none" aria-label="Search inventory table">
+              <select class="h-9 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 outline-none" aria-label="Filter by category">
+                <option>All</option><option>Dairy</option><option>Veg</option><option>Snacks</option><option>Beverages</option>
+              </select>
+            </div>
+          </div>
+          <div class="overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-700">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-800">
+                <tr class="text-left">
+                  <th class="px-4 py-3">Item</th>
+                  <th class="px-4 py-3">Qty</th>
+                  <th class="px-4 py-3">Unit</th>
+                  <th class="px-4 py-3">Expiry</th>
+                  <th class="px-4 py-3">Category</th>
+                  <th class="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="invBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-span-12 xl:col-span-4 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Alerts</h3>
+            <button type="button" class="text-sm px-3 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 hover:bg-white/60 dark:hover:bg-white/10">View all</button>
+          </div>
+          <div id="alerts" class="mt-3 space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- Smart Suggestions / Recipes / Grocery -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 md:col-span-6 xl:col-span-4 glass rounded-2xl p-6 shadow-glass space-y-4 animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Smart Suggestions</h3>
+            <span class="text-xs text-slate-500">AI powered</span>
+          </div>
+          <div id="smartList" class="space-y-2"></div>
+          <div class="flex gap-3 pt-2">
+            <button type="button" class="px-4 py-2 rounded-xl bg-brand-600 text-white hover:brightness-110">Generate Grocery List</button>
+            <button type="button" class="px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-700 hover:bg-white/60 dark:hover:bg-white/10">Open Insights</button>
+          </div>
+        </div>
+        <div class="col-span-12 md:col-span-6 xl:col-span-4 glass rounded-2xl p-0 shadow-glass overflow-hidden flip animate-fadeUp">
+          <div class="flip-inner w-full h-full">
+            <div class="flip-face p-6">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Recipe Match</h3>
+                <span class="text-xs text-slate-500">Hover to view</span>
+              </div>
+              <div class="mt-3 h-40 rounded-xl bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=1200&auto=format&fit=crop');"></div>
+              <div class="mt-4">
+                <div class="text-lg font-semibold" id="recipeTitle">Creamy Tomato Pasta 🍝</div>
+                <div class="text-sm text-slate-500" id="recipeUses">Uses: Tomato, Pasta, Garlic, Milk</div>
+              </div>
+              <div class="mt-4 flex gap-3">
+                <button type="button" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:brightness-110">Cook Now</button>
+                <button type="button" class="px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-700 hover:bg-white/60 dark:hover:bg-white/10">Save</button>
+              </div>
+            </div>
+            <div class="flip-face flip-back absolute inset-0 p-6">
+              <h4 class="font-semibold">Missing Ingredients</h4>
+              <ul class="mt-2 text-sm space-y-1 list-disc list-inside" id="missingList">
+                <li>Parmesan (optional)</li>
+                <li>Basil leaves</li>
+              </ul>
+              <button type="button" class="mt-4 px-4 py-2 rounded-xl bg-brand-600 text-white hover:brightness-110">Add to Grocery</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-span-12 xl:col-span-4 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Grocery List</h3>
+            <button type="button" class="text-sm px-3 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 hover:bg-white/60 dark:hover:bg-white/10">Export</button>
+          </div>
+          <ul id="groceryList" class="mt-3 space-y-2"></ul>
+          <div class="mt-4">
+            <h4 class="font-semibold mb-2">Meal Planner (Next 3 days)</h4>
+            <ul id="mealPlan" class="text-sm space-y-1 list-disc list-inside"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Retailer / Reports / Utilities -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 md:col-span-6 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Retailer Tools</h3>
+            <span class="text-xs text-slate-500">Visible if role = Retailer/Admin</span>
+          </div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3">
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 hover:bg-white/90">Bulk Upload (CSV/Excel)</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 hover:bg-white/90">Sales & Expiry Reports</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 hover:bg-white/90">Inventory Valuation</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 hover:bg-white/90">Customer Alerts (Soon)</button>
+          </div>
+        </div>
+        <div class="col-span-12 md:col-span-6 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Reports & Exports</h3>
+            <span class="text-xs text-slate-500">PDF / Excel</span>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-3">
+            <button type="button" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:brightness-110">Export Inventory (Excel)</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:brightness-110">Export Usage (PDF)</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-amber-500 text-white hover:brightness-110">Download Alerts</button>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div class="p-3 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700">Multi-Device Sync: <b>Active</b></div>
+            <div class="p-3 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700">Voice Commands: <b>Soon</b></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="py-6 text-sm text-slate-500 text-center">
+        SmartShelf © 2025 • Built to reduce food waste • <button type="button" onclick="logout()" class="text-brand-600 hover:underline">Logout</button>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 hidden">
+    <div class="glass rounded-2xl shadow-glass px-4 py-3 flex items-center gap-3 animate-fadeUp">
+      <i data-lucide="bell-ring" class="w-5 h-5 text-amber-500" aria-hidden="true"></i>
+      <span class="text-sm">You have new alerts. Check the Alerts panel.</span>
+    </div>
+  </div>
+
+  <!-- Inline JS -->
+  <script>
+    // Icons
+    function renderIcons() { lucide.createIcons(); }
+
+    // Theme Persist
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); }
+
+    // Sidebar Toggle (now toggles a single class on <body> for layout-wide changes)
+    const SIDEBAR_KEY = 'sidebar-collapsed';
+    const isCollapsedStored = localStorage.getItem(SIDEBAR_KEY) === 'true';
+    if (isCollapsedStored) document.body.classList.add('sidebar-collapsed');
+
+    document.getElementById('btnSidebar').addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(SIDEBAR_KEY, document.body.classList.contains('sidebar-collapsed'));
+    });
+
+    // Profile Menu
+    const btnProfile = document.getElementById('btnProfile');
+    const menuProfile = document.getElementById('menuProfile');
+    btnProfile.addEventListener('click', (e) => { e.stopPropagation(); menuProfile.classList.toggle('hidden'); });
+    btnProfile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menuProfile.classList.toggle('hidden'); } });
+    document.addEventListener('click', () => menuProfile.classList.add('hidden'));
+
+    // Theme Toggle
+    document.getElementById('btnTheme').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Logout
+    function logout() {
+      try { localStorage.removeItem('theme'); sessionStorage.clear(); } catch (e) { console.warn('Storage clear failed:', e); }
+      window.location.href = 'login.html';
+    }
+    window.logout = logout;
+
+    // Toast
+    const toast = document.getElementById('toast');
+    document.getElementById('btnNotify').addEventListener('click', () => { toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); });
+
+    // Animated Counters
+    function animateCounters() {
+      document.querySelectorAll('[data-counter]').forEach((el) => {
+        const target = parseFloat(el.dataset.counter);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        let current = 0; const duration = 900; const start = performance.now();
+        const step = (now) => {
+          const p = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          current = target * eased;
+          el.textContent = prefix + (Number.isInteger(target) ? Math.round(current) : current.toFixed(1)) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    }
+    window.addEventListener('load', animateCounters);
+
+    // Data
+    const invRows = [
+      { name: 'Milk', qty: 1, unit: 'L', expiry: '2025-08-23', cat: 'Dairy' },
+      { name: 'Tomatoes', qty: 6, unit: 'pcs', expiry: '2025-08-21', cat: 'Vegetables' },
+      { name: 'Rice', qty: 1.2, unit: 'kg', expiry: '—', cat: 'Grains' },
+      { name: 'Yogurt', qty: 2, unit: 'cups', expiry: '2025-08-20', cat: 'Dairy' },
+      { name: 'Soda', qty: 3, unit: 'bottles', expiry: '2026-01-05', cat: 'Beverages' }
+    ];
+    const alerts = [
+      { type: 'danger', icon: 'x-octagon', text: 'Milk expires tomorrow.' },
+      { type: 'warn', icon: 'circle-alert', text: 'Rice running low — 1kg left.' },
+      { type: 'info', icon: 'shopping-basket', text: 'Auto-restock Eggs in 3 days.' }
+    ];
+    const suggestions = [
+      'Auto-restock Eggs — 10-day cycle.',
+      'Substitute Sour Cream → Greek Yogurt in 2 recipes.',
+      'Allergen alert: 1 recipe contains peanuts.',
+      'Buy seasonal fruits — discounts this week.'
+    ];
+    const groceries = ['Basil', 'Parmesan', 'Whole Wheat Pasta'];
+    const meals = ['Mon: Veggie Wrap', 'Tue: Tomato Pasta', 'Wed: Stir Fry'];
+
+    // Render Data
+    function renderInventory() {
+      const invBody = document.getElementById('invBody');
+      invBody.innerHTML = '';
+      invRows.forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'odd:bg-white even:bg-slate-50/60 dark:odd:bg-slate-900/30 dark:even:bg-slate-800/30';
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-medium">${r.name}</td>
+          <td class="px-4 py-3">${r.qty}</td>
+          <td class="px-4 py-3">${r.unit}</td>
+          <td class="px-4 py-3">${r.expiry}</td>
+          <td class="px-4 py-3">${r.cat}</td>
+          <td class="px-4 py-3">
+            <button type="button" class="text-brand-600 hover:underline mr-2" aria-label="Edit ${r.name}">Edit</button>
+            <button type="button" class="text-rose-600 hover:underline" aria-label="Remove ${r.name}">Remove</button>
+          </td>`;
+        invBody.appendChild(tr);
+      });
+    }
+    function renderAlerts() {
+      const alertsBox = document.getElementById('alerts');
+      alertsBox.innerHTML = '';
+      alerts.forEach((a) => {
+        const wrap = document.createElement('div');
+        const colors =
+          a.type === 'danger' ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-300/60 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+          : a.type === 'warn' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300/60 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+          : 'bg-sky-50 dark:bg-sky-900/20 border-sky-300/60 dark:border-sky-800 text-sky-700 dark:text-sky-300';
+        wrap.className = `flex items-center gap-3 p-3 rounded-xl border ${colors}`;
+        wrap.innerHTML = `<i data-lucide="${a.icon}" class="w-4 h-4" aria-hidden="true"></i><div class="text-sm">${a.text}</div>`;
+        alertsBox.appendChild(wrap);
+      });
+    }
+    function renderSuggestions() {
+      const smartList = document.getElementById('smartList');
+      smartList.innerHTML = '';
+      suggestions.forEach((s) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-3 rounded-xl bg-white/70 dark:bg-white/10 hover:translate-x-0.5 transition';
+        div.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-brand-600" aria-hidden="true"></i><span class="text-sm">${s}</span>`;
+        smartList.appendChild(div);
+      });
+    }
+    function renderGroceryList() {
+      const groceryList = document.getElementById('groceryList');
+      groceryList.innerHTML = '';
+      groceries.forEach((g) => {
+        const li = document.createElement('li');
+        li.className = 'p-3 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 flex items-center justify-between';
+        li.innerHTML = `<span>${g}</span><button type="button" class="text-emerald-600 hover:underline text-sm" aria-label="Mark ${g} as bought">Mark Bought</button>`;
+        groceryList.appendChild(li);
+      });
+    }
+    function renderMealPlan() {
+      const mealPlan = document.getElementById('mealPlan');
+      mealPlan.innerHTML = '';
+      meals.forEach((m) => { const li = document.createElement('li'); li.textContent = m; mealPlan.appendChild(li); });
+    }
+
+    // Charts (reactive to dark mode)
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const chartColors = {
+      light: { consumed: { border: '#3d7fff', background: 'rgba(61,127,255,0.2)' }, purchased: { border: '#2ad5a5', background: 'rgba(42,213,165,0.2)' }, categories: ['#3d7fff', '#2ad5a5', '#f59e0b', '#ef4444', '#8b5cf6'] },
+      dark:  { consumed: { border: '#5d98ff', background: 'rgba(93,152,255,0.2)' }, purchased: { border: '#4ee8b5', background: 'rgba(78,232,181,0.2)' }, categories: ['#5d98ff', '#4ee8b5', '#fbbf24', '#f87171', '#a78bfa'] },
+    };
+
+    const trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+          { label: 'Consumed', data: [6, 8, 7, 5, 9, 11, 8], tension: 0.35, borderWidth: 2, fill: true,
+            borderColor: isDark() ? chartColors.dark.consumed.border : chartColors.light.consumed.border,
+            backgroundColor: isDark() ? chartColors.dark.consumed.background : chartColors.light.consumed.background },
+          { label: 'Purchased', data: [5, 6, 6, 7, 8, 10, 7], tension: 0.35, borderWidth: 2, fill: false,
+            borderColor: isDark() ? chartColors.dark.purchased.border : chartColors.light.purchased.border,
+            backgroundColor: isDark() ? chartColors.dark.purchased.background : chartColors.light.purchased.background },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: isDark() ? '#f1f5f9' : '#334155' } } },
+        scales: { y: { beginAtZero: true, grid: { color: isDark() ? '#334155' : '#e2e8f0' } }, x: { grid: { display: false }, ticks: { color: isDark() ? '#f1f5f9' : '#334155' } } },
+      },
+    });
+
+    const invChart = new Chart(document.getElementById('invChart'), {
+      type: 'doughnut',
+      data: { labels: ['Vegetables', 'Dairy', 'Grains', 'Snacks', 'Beverages'], datasets: [ { data: [30, 20, 25, 15, 10], backgroundColor: isDark() ? chartColors.dark.categories : chartColors.light.categories, borderColor: isDark() ? '#1e293b' : '#ffffff', borderWidth: 1 } ] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: isDark() ? '#f1f5f9' : '#334155' } } } },
+    });
+
+    // Mobile Search
+    document.getElementById('btnMobileSearch').addEventListener('click', () => { alert('Mobile search triggered. Implement modal or search page.'); });
+
+    // Search Demo
+    document.getElementById('search').addEventListener('keydown', (e) => { if (e.key === 'Enter') { alert('Search: ' + e.target.value + '\n(Connect to your backend endpoint)'); } });
+
+    // Init
+    function init() {
+      renderInventory(); renderAlerts(); renderSuggestions(); renderGroceryList(); renderMealPlan(); renderIcons();
+    }
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
