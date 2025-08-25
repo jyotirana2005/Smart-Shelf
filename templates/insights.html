@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartShelf • Insights</title>
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        container: { center: false },
+        extend: {
+          colors: {
+            brand: { 50: '#eef5ff', 100: '#d9e8ff', 200: '#b6d2ff', 300: '#8db9ff', 400: '#5d98ff', 500: '#3d7fff', 600: '#2f66e6', 700: '#254fba', 800: '#1f4196', 900: '#1d377a' },
+            mint: { 500: '#2ad5a5' }
+          },
+          boxShadow: { glass: '0 10px 30px rgba(0,0,0,.08)' },
+          keyframes: {
+            fadeUp: { '0%': { opacity: 0, transform: 'translateY(10px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            scaleIn: { '0%': { opacity: 0, transform: 'scale(.98)' }, '100%': { opacity: 1, transform: 'scale(1)' } },
+          },
+          animation: { fadeUp: 'fadeUp .5s ease-out both', scaleIn: 'scaleIn .35s ease-out both' }
+        }
+      }
+    }
+  </script>
+  <!-- Chart.js + Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body { width: 100vw; min-width: 0; }
+    body { min-height: 100vh; background: #f8fafc; }
+    .dark body, body.dark { background: #0f172a !important; color: #f1f5f9 !important; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66)); backdrop-filter: blur(8px); }
+    .dark .glass { background: linear-gradient(180deg, rgba(30,41,59,.60), rgba(15,23,42,.50)); }
+
+    /* ===== Sidebar + Layout (space-optimized) ===== */
+    #sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 240px; min-width: 240px;
+      padding: 5rem 0.75rem 0.75rem;
+      transition: width .3s ease, padding .3s ease;
+      z-index: 30;
+    }
+    body.sidebar-collapsed #sidebar {
+      width: 72px; min-width: 72px; padding: 5rem 0.25rem 0.75rem;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    body.sidebar-collapsed #sidebar nav { display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+    body.sidebar-collapsed #sidebar nav a { justify-content: center; padding: .5rem; width: 44px; height: 44px; }
+    body.sidebar-collapsed .sidebar-text { display: null !important; }
+    body.sidebar-collapsed .sidebar-icon { margin-right: 0 !important; }
+    body.sidebar-collapsed .sidebar-sustainability { display: null !important; }
+
+    /* Main wrapper shifts to always fill free space */
+    #pageWrap { max-width: 100vw; padding-left: 240px; transition: padding-left .3s ease; }
+    body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+
+    /* Ensure main stretches; avoid fixed column spans that cause gaps */
+    #pageWrap main { margin: 0 auto; width: 100%; padding: 1.5rem; transition: padding .3s ease; }
+    @media (max-width: 768px) { #pageWrap main { padding: 1rem; } }
+
+    /* Mobile: sidebar off-canvas by default; reveals in collapsed (icon bar) mode */
+    @media (max-width: 768px) {
+      #sidebar { display: null; }
+      body.sidebar-collapsed #sidebar { display: flex; }
+      #pageWrap { padding-left: 0; }
+      body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+    }
+
+    /* Dark Mode fixes */
+    .dark .glass, .dark .glass * { color: #f1f5f9 !important; }
+    .dark .glass input, .dark .glass select { background: #1e293b !important; color: #f1f5f9 !important; }
+    .dark .glass .text-slate-500, .dark .glass .text-slate-400 { color: #cbd5e1 !important; }
+    .dark .glass .text-slate-800 { color: #f1f5f9 !important; }
+    .dark .glass .bg-white, .dark .glass .bg-slate-50 { background: #1e293b !important; }
+    .dark .glass .border-slate-200, .dark .glass .border-slate-700 { border-color: #334155 !important; }
+
+    /* ===== Tooltips (icons-only state) ===== */
+    body.sidebar-collapsed #sidebar nav a[data-tip] { position: relative; }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: 56px; top: 50%; transform: translateY(-50%);
+      background: rgba(15,23,42,.95); color: #fff; font-size: 12px; line-height: 1; white-space: nowrap;
+      padding: 8px 10px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+      opacity: 1; pointer-events: null; z-index: 40;
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::after { background: rgba(15,23,42,.9); }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::before {
+      content: '';
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      border: 6px solid transparent; border-right-color: rgba(15,23,42,.95);
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::before { border-right-color: rgba(15,23,42,.9); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 w-full min-w-0">
+  <!-- Navbar -->
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200/70 dark:border-slate-800">
+    <div class="container px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="btnSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle sidebar">
+          <i data-lucide="panel-left" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 rounded-xl bg-brand-600 text-white items-center justify-center font-bold">S</span>
+          <span class="text-lg font-semibold">SmartShelf</span>
+        </div>
+      </div>
+      <div class="flex-1 max-w-xl mx-6 hidden md:flex items-center gap-3">
+        <div class="relative group flex-1">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+          <input id="search" placeholder="Search insights…" class="w-full pl-10 pr-4 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition" aria-label="Search insights">
+        </div>
+      </div>
+      <button class="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open search" id="btnMobileSearch">
+        <i data-lucide="search" class="w-5 h-5" aria-hidden="true"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <button id="btnTheme" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+          <i data-lucide="moon-star" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <button id="btnNotify" class="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="View notifications">
+          <i data-lucide="bell" class="w-5 h-5" aria-hidden="true"></i>
+          <span class="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse"></span>
+        </button>
+        <div class="relative">
+          <button id="btnProfile" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open profile menu">
+            <img src="https://api.dicebear.com/9.x/identicon/svg?seed=smartshelf" class="w-7 h-7 rounded-lg" alt="User avatar"/>
+            <span class="hidden sm:block font-medium" id="username">Household</span>
+            <i data-lucide="chevron-down" class="w-4 h-4" aria-hidden="true"></i>
+          </button>
+          <div id="menuProfile" class="hidden absolute right-0 mt-2 w-48 glass rounded-xl shadow-glass p-2 z-50">
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Profile</button>
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Settings</button>
+            <button onclick="logout()" class="w-full text-left px-3 py-2 rounded-lg text-red-500 hover:bg-white/50 dark:hover:bg-white/10">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <div id="pageWrap" class="w-full px-2 md:px-6 mt-6 grid grid-cols-12 gap-6">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="glass rounded-2xl p-3 shadow-glass transition-all duration-300">
+      <nav class="space-y-1 sidebar-nav-full">
+        <a href="/dashboard" data-tip="Dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Dashboard"><i data-lucide="gauge" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Dashboard</span></a>
+        <a href="/inventory" data-tip="Inventory" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Inventory"><i data-lucide="boxes" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Inventory</span></a>
+        <a href="/alerts" data-tip="Alerts" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Alerts"><i data-lucide="alarm-clock" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Alerts</span></a>
+        <a href="/insights" data-tip="Insights" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-glass" title="Insights"><i data-lucide="bot" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Insights</span></a>
+        <a href="/recipes" data-tip="Recipes" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Recipes"><i data-lucide="book-open" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Recipes</span></a>
+        <a href="/reports" data-tip="Reports" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Reports"><i data-lucide="file-chart-column" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Reports</span></a>
+        <a href="/marketplace" data-tip="Marketplace" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Marketplace"><i data-lucide="store" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Marketplace</span></a>
+        <a href="/settings" data-tip="Settings" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Settings"><i data-lucide="settings" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Settings</span></a>
+      </nav>
+      <div class="mt-4 p-3 rounded-xl bg-gradient-to-r from-brand-600 to-mint-500 text-white sidebar-sustainability">
+        <div class="text-sm opacity-90">AI Insights</div>
+        <div class="text-2xl font-semibold" id="aiInsights">87%</div>
+        <div class="text-xs opacity-90 mt-1">Accuracy rate 🤖</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="col-span-12 space-y-6">
+      <!-- Header -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl xl:text-3xl font-semibold">AI Insights & Analytics</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Smart analysis of your consumption patterns and waste reduction</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="px-4 py-2 rounded-xl bg-brand-600 text-white hover:brightness-110 transition" onclick="generateReport()">📊 Generate Report</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 border border-slate-200/50 dark:border-slate-700 transition" onclick="exportInsights()">📥 Export Data</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Metrics -->
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Waste Reduced</span><i data-lucide="leaf" class="w-4 h-4 text-emerald-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-emerald-600" data-counter="42">0</div>
+          <div class="text-xs text-slate-500 mt-1">% this month</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.05s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Money Saved</span><i data-lucide="wallet" class="w-4 h-4 text-brand-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-brand-600" data-counter="3250" data-prefix="₹">0</div>
+          <div class="text-xs text-slate-500 mt-1">This month</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.1s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Carbon Footprint</span><i data-lucide="globe" class="w-4 h-4 text-blue-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-blue-600" data-counter="18">0</div>
+          <div class="text-xs text-slate-500 mt-1">kg CO₂ saved</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.15s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Recipe Success</span><i data-lucide="chef-hat" class="w-4 h-4 text-amber-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-amber-600" data-counter="92">0</div>
+          <div class="text-xs text-slate-500 mt-1">% success rate</div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 xl:col-span-8 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Consumption Trends</h3>
+            <select class="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition">
+              <option>Last 7 days</option>
+              <option>Last 30 days</option>
+              <option selected>Last 90 days</option>
+              <option>This year</option>
+            </select>
+          </div>
+          <div class="h-64 mt-4"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="col-span-12 xl:col-span-4 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Waste Analysis</h3>
+            <span class="text-xs text-slate-500">By category</span>
+          </div>
+          <div class="h-64 mt-4"><canvas id="wasteChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- AI Recommendations -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="font-semibold text-lg">AI-Powered Recommendations</h3>
+          <button class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Refresh recommendations">
+            <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="recommendations">
+          <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <div class="flex items-start gap-3">
+              <i data-lucide="shopping-cart" class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" aria-hidden="true"></i>
+              <div>
+                <h4 class="font-medium text-blue-800 dark:text-blue-200">Optimize Purchases</h4>
+                <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">Buy vegetables in smaller quantities to reduce spoilage</p>
+                <p class="text-xs text-blue-600 dark:text-blue-400 mt-2">Confidence: 92%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+            <div class="flex items-start gap-3">
+              <i data-lucide="calendar" class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5" aria-hidden="true"></i>
+              <div>
+                <h4 class="font-medium text-emerald-800 dark:text-emerald-200">Meal Planning</h4>
+                <p class="text-sm text-emerald-700 dark:text-emerald-300 mt-1">Plan meals around items expiring in the next 3 days</p>
+                <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">Confidence: 88%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <div class="flex items-start gap-3">
+              <i data-lucide="trending-up" class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" aria-hidden="true"></i>
+              <div>
+                <h4 class="font-medium text-amber-800 dark:text-amber-200">Consumption Pattern</h4>
+                <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Dairy consumption peaks on weekends - adjust purchases</p>
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-2">Confidence: 85%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detailed Analytics -->
+      <section class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 md:col-span-6 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <h3 class="font-semibold mb-4">Category Performance</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Vegetables</span>
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-emerald-500 h-2 rounded-full" style="width: 75%"></div>
+                </div>
+                <span class="text-sm font-medium text-emerald-600">75%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Dairy</span>
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-amber-500 h-2 rounded-full" style="width: 60%"></div>
+                </div>
+                <span class="text-sm font-medium text-amber-600">60%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Grains</span>
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-blue-500 h-2 rounded-full" style="width: 82%"></div>
+                </div>
+                <span class="text-sm font-medium text-blue-600">82%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Snacks</span>
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-rose-500 h-2 rounded-full" style="width: 45%"></div>
+                </div>
+                <span class="text-sm font-medium text-rose-600">45%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-12 md:col-span-6 glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+          <h3 class="font-semibold mb-4">Sustainability Impact</h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm">Food Waste Prevented</span>
+                <span class="text-sm font-medium text-emerald-600">3.8 kg</span>
+              </div>
+              <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                <div class="bg-emerald-500 h-2 rounded-full" style="width: 76%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm">Carbon Emissions Saved</span>
+                <span class="text-sm font-medium text-blue-600">18 kg CO₂</span>
+              </div>
+              <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: 65%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm">Water Conservation</span>
+                <span class="text-sm font-medium text-cyan-600">1200 L</span>
+              </div>
+              <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                <div class="bg-cyan-500 h-2 rounded-full" style="width: 82%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Predictive Analytics -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <h3 class="font-semibold text-lg mb-6">Predictive Analytics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="font-medium mb-3">Next Week Forecast</h4>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Expected Consumption</span>
+                <span class="text-sm font-medium">24 items</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Potential Waste</span>
+                <span class="text-sm font-medium text-rose-600">2 items</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Recommended Purchase</span>
+                <span class="text-sm font-medium text-emerald-600">18 items</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4 class="font-medium mb-3">Monthly Projection</h4>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Total Savings</span>
+                <span class="text-sm font-medium text-brand-600">₹4,200</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Waste Reduction</span>
+                <span class="text-sm font-medium text-emerald-600">48%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm">Carbon Impact</span>
+                <span class="text-sm font-medium text-blue-600">85 kg CO₂</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Inline JS -->
+  <script>
+    // Icons
+    function renderIcons() { lucide.createIcons(); }
+
+    // Theme Persist
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); }
+
+    // Sidebar Toggle
+    const SIDEBAR_KEY = 'sidebar-collapsed';
+    const isCollapsedStored = localStorage.getItem(SIDEBAR_KEY) === 'true';
+    if (isCollapsedStored) document.body.classList.add('sidebar-collapsed');
+
+    document.getElementById('btnSidebar').addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(SIDEBAR_KEY, document.body.classList.contains('sidebar-collapsed'));
+    });
+
+    // Profile Menu
+    const btnProfile = document.getElementById('btnProfile');
+    const menuProfile = document.getElementById('menuProfile');
+    btnProfile.addEventListener('click', (e) => { e.stopPropagation(); menuProfile.classList.toggle('hidden'); });
+    btnProfile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menuProfile.classList.toggle('hidden'); } });
+    document.addEventListener('click', () => menuProfile.classList.add('hidden'));
+
+    // Theme Toggle
+    document.getElementById('btnTheme').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Logout
+    function logout() {
+      try { localStorage.removeItem('theme'); sessionStorage.clear(); } catch (e) { console.warn('Storage clear failed:', e); }
+      window.location.href = 'login.html';
+    }
+    window.logout = logout;
+
+    // Insight Functions
+    function generateReport() {
+      alert('Comprehensive insights report generated!');
+      // Implementation: Generate PDF/Excel report
+    }
+
+    function exportInsights() {
+      alert('Insights data exported successfully!');
+      // Implementation: Export data to CSV/Excel
+    }
+
+    // Animated Counters
+    function animateCounters() {
+      document.querySelectorAll('[data-counter]').forEach((el) => {
+        const target = parseFloat(el.dataset.counter);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        let current = 0; const duration = 900; const start = performance.now();
+        const step = (now) => {
+          const p = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          current = target * eased;
+          el.textContent = prefix + (Number.isInteger(target) ? Math.round(current) : current.toFixed(1)) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    }
+
+    // Charts
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const chartColors = {
+      light: { 
+        trend: ['#3d7fff', '#2ad5a5', '#f59e0b'], 
+        waste: ['#3d7fff', '#2ad5a5', '#f59e0b', '#ef4444', '#8b5cf6'] 
+      },
+      dark:  { 
+        trend: ['#5d98ff', '#4ee8b5', '#fbbf24'], 
+        waste: ['#5d98ff', '#4ee8b5', '#fbbf24', '#f87171', '#a78bfa'] 
+      },
+    };
+
+    // Trend Chart
+    const trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        datasets: [
+          { 
+            label: 'Consumption', 
+            data: [120, 145, 130, 160, 155, 170, 165], 
+            tension: 0.4, 
+            borderWidth: 2, 
+            fill: true,
+            borderColor: isDark() ? chartColors.dark.trend[0] : chartColors.light.trend[0],
+            backgroundColor: isDark() ? `${chartColors.dark.trend[0]}20` : `${chartColors.light.trend[0]}20`
+          },
+          { 
+            label: 'Waste', 
+            data: [45, 38, 32, 28, 25, 22, 18], 
+            tension: 0.4, 
+            borderWidth: 2, 
+            fill: true,
+            borderColor: isDark() ? chartColors.dark.trend[1] : chartColors.light.trend[1],
+            backgroundColor: isDark() ? `${chartColors.dark.trend[1]}20` : `${chartColors.light.trend[1]}20`
+          }
+        ],
+      },
+      options: {
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { 
+            display: true, 
+            labels: { color: isDark() ? '#f1f5f9' : '#334155' } 
+          } 
+        },
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            grid: { color: isDark() ? '#334155' : '#e2e8f0' } 
+          }, 
+          x: { 
+            grid: { display: false }, 
+            ticks: { color: isDark() ? '#f1f5f9' : '#334155' } 
+          } 
+        },
+      },
+    });
+
+    // Waste Chart
+    const wasteChart = new Chart(document.getElementById('wasteChart'), {
+      type: 'doughnut',
+      data: { 
+        labels: ['Vegetables', 'Dairy', 'Grains', 'Snacks', 'Beverages'], 
+        datasets: [{ 
+          data: [35, 25, 20, 15, 5],
+          backgroundColor: isDark() ? chartColors.dark.waste : chartColors.light.waste,
+          borderColor: isDark() ? '#1e293b' : '#ffffff',
+          borderWidth: 1
+        }] 
+      },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        cutout: '60%', 
+        plugins: { 
+          legend: { 
+            position: 'bottom', 
+            labels: { color: isDark() ? '#f1f5f9' : '#334155' } 
+          } 
+        } 
+      },
+    });
+
+    // Initialize
+    function init() {
+      renderIcons();
+      animateCounters();
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>

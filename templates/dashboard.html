@@ -156,13 +156,14 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="glass rounded-2xl p-3 shadow-glass transition-all duration-300">
       <nav class="space-y-1 sidebar-nav-full">
-        <a data-tip="Dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-glass" title="Dashboard"><i data-lucide="gauge" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Dashboard</span></a>
-        <a data-tip="Inventory" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Inventory"><i data-lucide="boxes" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Inventory</span></a>
-        <a data-tip="Alerts" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Alerts"><i data-lucide="alarm-clock" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Alerts</span></a>
-        <a data-tip="Insights" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Insights"><i data-lucide="bot" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Insights</span></a>
-        <a data-tip="Recipes" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Recipes"><i data-lucide="book-open" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Recipes</span></a>
-        <a data-tip="Reports" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Reports"><i data-lucide="file-chart-column" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Reports</span></a>
-        <a data-tip="Voice (Soon)" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Voice (Soon)"><i data-lucide="mic" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Voice (Soon)</span></a>
+        <a href="/dashboard" data-tip="Dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-glass" title="Dashboard"><i data-lucide="gauge" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Dashboard</span></a>
+        <a href="/inventory" data-tip="Inventory" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Inventory"><i data-lucide="boxes" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Inventory</span></a>
+        <a href="/alerts" data-tip="Alerts" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Alerts"><i data-lucide="alarm-clock" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Alerts</span></a>
+        <a href="/insights" data-tip="Insights" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Insights"><i data-lucide="bot" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Insights</span></a>
+        <a href="/recipes" data-tip="Recipes" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Recipes"><i data-lucide="book-open" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Recipes</span></a>
+        <a href="/reports" data-tip="Reports" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Reports"><i data-lucide="file-chart-column" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Reports</span></a>
+        <a href="/marketplace" data-tip="Marketplace" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Marketplace"><i data-lucide="store" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Marketplace</span></a>
+        <a href="/settings" data-tip="Settings" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Settings"><i data-lucide="settings" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Settings</span></a>
       </nav>
       <div class="mt-4 p-3 rounded-xl bg-gradient-to-r from-brand-600 to-mint-500 text-white sidebar-sustainability">
         <div class="text-sm opacity-90">This week you saved</div>
@@ -435,33 +436,51 @@
     }
     window.addEventListener('load', animateCounters);
 
-    // Data
-    const invRows = [
-      { name: 'Milk', qty: 1, unit: 'L', expiry: '2025-08-23', cat: 'Dairy' },
-      { name: 'Tomatoes', qty: 6, unit: 'pcs', expiry: '2025-08-21', cat: 'Vegetables' },
-      { name: 'Rice', qty: 1.2, unit: 'kg', expiry: '—', cat: 'Grains' },
-      { name: 'Yogurt', qty: 2, unit: 'cups', expiry: '2025-08-20', cat: 'Dairy' },
-      { name: 'Soda', qty: 3, unit: 'bottles', expiry: '2026-01-05', cat: 'Beverages' }
-    ];
-    const alerts = [
-      { type: 'danger', icon: 'x-octagon', text: 'Milk expires tomorrow.' },
-      { type: 'warn', icon: 'circle-alert', text: 'Rice running low — 1kg left.' },
-      { type: 'info', icon: 'shopping-basket', text: 'Auto-restock Eggs in 3 days.' }
-    ];
-    const suggestions = [
-      'Auto-restock Eggs — 10-day cycle.',
-      'Substitute Sour Cream → Greek Yogurt in 2 recipes.',
-      'Allergen alert: 1 recipe contains peanuts.',
-      'Buy seasonal fruits — discounts this week.'
-    ];
-    const groceries = ['Basil', 'Parmesan', 'Whole Wheat Pasta'];
-    const meals = ['Mon: Veggie Wrap', 'Tue: Tomato Pasta', 'Wed: Stir Fry'];
+    // API Configuration
+    const API_BASE = '/api';
+    
+    // Data fetching functions
+    async function fetchDashboardData() {
+      try {
+        const response = await fetch(`${API_BASE}/dashboard-data`);
+        if (!response.ok) throw new Error('Failed to fetch dashboard data');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        showToast('Error loading dashboard data', 'error');
+        return null;
+      }
+    }
 
-    // Render Data
-    function renderInventory() {
+    async function fetchInventory() {
+      try {
+        const response = await fetch(`${API_BASE}/inventory`);
+        if (!response.ok) throw new Error('Failed to fetch inventory');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching inventory:', error);
+        return [];
+      }
+    }
+
+    // Render Data with empty state handling
+    function renderInventory(inventoryData = []) {
       const invBody = document.getElementById('invBody');
       invBody.innerHTML = '';
-      invRows.forEach((r) => {
+      
+      if (inventoryData.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+            <i data-lucide="package" class="w-12 h-12 mx-auto mb-2 text-slate-300" aria-hidden="true"></i>
+            <p class="text-sm">No inventory items found</p>
+            <p class="text-xs mt-1">Add items to see them here</p>
+          </td>`;
+        invBody.appendChild(tr);
+        return;
+      }
+
+      inventoryData.forEach((r) => {
         const tr = document.createElement('tr');
         tr.className = 'odd:bg-white even:bg-slate-50/60 dark:odd:bg-slate-900/30 dark:even:bg-slate-800/30';
         tr.innerHTML = `
@@ -477,10 +496,20 @@
         invBody.appendChild(tr);
       });
     }
-    function renderAlerts() {
+
+    function renderAlerts(alertsData = []) {
       const alertsBox = document.getElementById('alerts');
       alertsBox.innerHTML = '';
-      alerts.forEach((a) => {
+      
+      if (alertsData.length === 0) {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700 text-slate-500 dark:text-slate-400';
+        wrap.innerHTML = `<i data-lucide="bell-off" class="w-4 h-4" aria-hidden="true"></i><div class="text-sm">No alerts at this time</div>`;
+        alertsBox.appendChild(wrap);
+        return;
+      }
+
+      alertsData.forEach((a) => {
         const wrap = document.createElement('div');
         const colors =
           a.type === 'danger' ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-300/60 dark:border-rose-800 text-rose-700 dark:text-rose-300'
@@ -491,30 +520,64 @@
         alertsBox.appendChild(wrap);
       });
     }
-    function renderSuggestions() {
+
+    function renderSuggestions(suggestionsData = []) {
       const smartList = document.getElementById('smartList');
       smartList.innerHTML = '';
-      suggestions.forEach((s) => {
+      
+      if (suggestionsData.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400';
+        div.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4" aria-hidden="true"></i><span class="text-sm">No suggestions available</span>`;
+        smartList.appendChild(div);
+        return;
+      }
+
+      suggestionsData.forEach((s) => {
         const div = document.createElement('div');
         div.className = 'flex items-center gap-3 p-3 rounded-xl bg-white/70 dark:bg-white/10 hover:translate-x-0.5 transition';
         div.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-brand-600" aria-hidden="true"></i><span class="text-sm">${s}</span>`;
         smartList.appendChild(div);
       });
     }
-    function renderGroceryList() {
+
+    function renderGroceryList(groceriesData = []) {
       const groceryList = document.getElementById('groceryList');
       groceryList.innerHTML = '';
-      groceries.forEach((g) => {
+      
+      if (groceriesData.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-center';
+        li.innerHTML = `<span class="text-sm">No grocery items added yet</span>`;
+        groceryList.appendChild(li);
+        return;
+      }
+
+      groceriesData.forEach((g) => {
         const li = document.createElement('li');
         li.className = 'p-3 rounded-xl bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-slate-700 flex items-center justify-between';
         li.innerHTML = `<span>${g}</span><button type="button" class="text-emerald-600 hover:underline text-sm" aria-label="Mark ${g} as bought">Mark Bought</button>`;
         groceryList.appendChild(li);
       });
     }
-    function renderMealPlan() {
+
+    function renderMealPlan(mealsData = []) {
       const mealPlan = document.getElementById('mealPlan');
       mealPlan.innerHTML = '';
-      meals.forEach((m) => { const li = document.createElement('li'); li.textContent = m; mealPlan.appendChild(li); });
+      
+      if (mealsData.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'text-slate-500 dark:text-slate-400';
+        li.textContent = 'No meals planned yet';
+        mealPlan.appendChild(li);
+        return;
+      }
+
+      mealsData.forEach((m) => { 
+        const li = document.createElement('li'); 
+        li.textContent = m; 
+        mealPlan.appendChild(li); 
+      });
     }
 
     // Charts (reactive to dark mode)
@@ -558,7 +621,7 @@
 
     // Init
     function init() {
-      renderInventory(); renderAlerts(); renderSuggestions(); renderGroceryList(); renderMealPlan(); renderIcons();
+      renderInventory([]); renderAlerts([]); renderSuggestions([]); renderGroceryList([]); renderMealPlan([]); renderIcons();
     }
     window.addEventListener('load', init);
   </script>

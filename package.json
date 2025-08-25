@@ -1,0 +1,28 @@
+{
+  "name": "minor-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "postcss static/input.css -o static/output.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jyotirana2005/Smart-Shelf.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jyotirana2005/Smart-Shelf/issues"
+  },
+  "homepage": "https://github.com/jyotirana2005/Smart-Shelf#readme",
+  "description": "",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^4.1.12"
+  }
+}

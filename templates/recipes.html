@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartShelf • Recipes</title>
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        container: { center: false },
+        extend: {
+          colors: {
+            brand: { 50: '#eef5ff', 100: '#d9e8ff', 200: '#b6d2ff', 300: '#8db9ff', 400: '#5d98ff', 500: '#3d7fff', 600: '#2f66e6', 700: '#254fba', 800: '#1f4196', 900: '#1d377a' },
+            mint: { 500: '#2ad5a5' }
+          },
+          boxShadow: { glass: '0 10px 30px rgba(0,0,0,.08)' },
+          keyframes: {
+            fadeUp: { '0%': { opacity: 0, transform: 'translateY(10px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            scaleIn: { '0%': { opacity: 0, transform: 'scale(.98)' }, '100%': { opacity: 1, transform: 'scale(1)' } }
+          },
+          animation: { fadeUp: 'fadeUp .5s ease-out both', scaleIn: 'scaleIn .35s ease-out both' }
+        }
+      }
+    }
+  </script>
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body { width: 100vw; min-width: 0; }
+    body { min-height: 100vh; background: #f8fafc; }
+    .dark body, body.dark { background: #0f172a !important; color: #f1f5f9 !important; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66)); backdrop-filter: blur(8px); }
+    .dark .glass { background: linear-gradient(180deg, rgba(30,41,59,.60), rgba(15,23,42,.50)); }
+
+    /* ===== Sidebar + Layout (space-optimized) ===== */
+    #sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 240px; min-width: 240px;
+      padding: 5rem 0.75rem 0.75rem;
+      transition: width .3s ease, padding .3s ease;
+      z-index: 30;
+    }
+    body.sidebar-collapsed #sidebar {
+      width: 72px; min-width: 72px; padding: 5rem 0.25rem 0.75rem;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    body.sidebar-collapsed #sidebar nav { display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+    body.sidebar-collapsed #sidebar nav a { justify-content: center; padding: .5rem; width: 44px; height: 44px; }
+    body.sidebar-collapsed .sidebar-text { display: none !important; }
+    body.sidebar-collapsed .sidebar-icon { margin-right: 0 !important; }
+    body.sidebar-collapsed .sidebar-sustainability { display: none !important; }
+
+    /* Main wrapper shifts to always fill free space */
+    #pageWrap { max-width: 100vw; padding-left: 240px; transition: padding-left .3s ease; }
+    body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+
+    /* Ensure main stretches; avoid fixed column spans that cause gaps */
+    #pageWrap main { margin: 0 auto; width: 100%; padding: 1.5rem; transition: padding .3s ease; }
+    @media (max-width: 768px) { #pageWrap main { padding: 1rem; } }
+
+    /* Mobile: sidebar off-canvas by default; reveals in collapsed (icon bar) mode */
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      body.sidebar-collapsed #sidebar { display: flex; }
+      #pageWrap { padding-left: 0; }
+      body.sidebar-collapsed #pageWrap { padding-left: 72px; }
+    }
+
+    /* Dark Mode fixes */
+    .dark .glass, .dark .glass * { color: #f1f5f9 !important; }
+    .dark .glass input, .dark .glass select { background: #1e293b !important; color: #f1f5f9 !important; }
+    .dark .glass .text-slate-500, .dark .glass .text-slate-400 { color: #cbd5e1 !important; }
+    .dark .glass .text-slate-800 { color: #f1f5f9 !important; }
+    .dark .glass .bg-white, .dark .glass .bg-slate-50 { background: #1e293b !important; }
+    .dark .glass .border-slate-200, .dark .glass .border-slate-700 { border-color: #334155 !important; }
+
+    /* ===== Tooltips (icons-only state) ===== */
+    body.sidebar-collapsed #sidebar nav a[data-tip] { position: relative; }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: 56px; top: 50%; transform: translateY(-50%);
+      background: rgba(15,23,42,.95); color: #fff; font-size: 12px; line-height: 1; white-space: nowrap;
+      padding: 8px 10px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+      opacity: 1; pointer-events: none; z-index: 40;
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::after { background: rgba(15,23,42,.9); }
+    body.sidebar-collapsed #sidebar nav a[data-tip]:hover::before {
+      content: '';
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      border: 6px solid transparent; border-right-color: rgba(15,23,42,.95);
+    }
+    body:not(.dark).sidebar-collapsed #sidebar nav a[data-tip]:hover::before { border-right-color: rgba(15,23,42,.9); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 w-full min-w-0">
+  <!-- Navbar -->
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200/70 dark:border-slate-800">
+    <div class="container px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="btnSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle sidebar">
+          <i data-lucide="panel-left" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 rounded-xl bg-brand-600 text-white items-center justify-center font-bold">S</span>
+          <span class="text-lg font-semibold">SmartShelf</span>
+        </div>
+      </div>
+      <div class="flex-1 max-w-xl mx-6 hidden md:flex items-center gap-3">
+        <div class="relative group flex-1">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+          <input id="search" placeholder="Search recipes…" class="w-full pl-10 pr-4 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition" aria-label="Search recipes">
+        </div>
+      </div>
+      <button class="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open search" id="btnMobileSearch">
+        <i data-lucide="search" class="w-5 h-5" aria-hidden="true"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <button id="btnTheme" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+          <i data-lucide="moon-star" class="w-5 h-5" aria-hidden="true"></i>
+        </button>
+        <button id="btnNotify" class="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="View notifications">
+          <i data-lucide="bell" class="w-5 h-5" aria-hidden="true"></i>
+          <span class="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse"></span>
+        </button>
+        <div class="relative">
+          <button id="btnProfile" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Open profile menu">
+            <img src="https://api.dicebear.com/9.x/identicon/svg?seed=smartshelf" class="w-7 h-7 rounded-lg" alt="User avatar"/>
+            <span class="hidden sm:block font-medium" id="username">Household</span>
+            <i data-lucide="chevron-down" class="w-4 h-4" aria-hidden="true"></i>
+          </button>
+          <div id="menuProfile" class="hidden absolute right-0 mt-2 w-48 glass rounded-xl shadow-glass p-2 z-50">
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Profile</button>
+            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10">Settings</button>
+            <button onclick="logout()" class="w-full text-left px-3 py-2 rounded-lg text-red-500 hover:bg-white/50 dark:hover:bg-white/10">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <div id="pageWrap" class="w-full px-2 md:px-6 mt-6 grid grid-cols-12 gap-6">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="glass rounded-2xl p-3 shadow-glass transition-all duration-300">
+      <nav class="space-y-1 sidebar-nav-full">
+        <a href="/dashboard" data-tip="Dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Dashboard"><i data-lucide="gauge" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Dashboard</span></a>
+        <a href="/inventory" data-tip="Inventory" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Inventory"><i data-lucide="boxes" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Inventory</span></a>
+        <a href="/alerts" data-tip="Alerts" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Alerts"><i data-lucide="alarm-clock" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Alerts</span></a>
+        <a href="/insights" data-tip="Insights" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Insights"><i data-lucide="bot" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Insights</span></a>
+        <a href="/recipes" data-tip="Recipes" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-glass" title="Recipes"><i data-lucide="book-open" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Recipes</span></a>
+        <a href="/reports" data-tip="Reports" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Reports"><i data-lucide="file-chart-column" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Reports</span></a>
+        <a href="/marketplace" data-tip="Marketplace" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Marketplace"><i data-lucide="store" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Marketplace</span></a>
+        <a href="/settings" data-tip="Settings" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10" title="Settings"><i data-lucide="settings" class="w-5 h-5 sidebar-icon" aria-hidden="true"></i><span class="sidebar-text">Settings</span></a>
+      </nav>
+      <div class="mt-4 p-3 rounded-xl bg-gradient-to-r from-brand-600 to-mint-500 text-white sidebar-sustainability">
+        <div class="text-sm opacity-90">Available Recipes</div>
+        <div class="text-2xl font-semibold" id="availableRecipes">24</div>
+        <div class="text-xs opacity-90 mt-1">With current ingredients 🍳</div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="col-span-12 space-y-6">
+      <!-- Header -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl xl:text-3xl font-semibold">Smart Recipes</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Discover recipes based on your current inventory</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="px-4 py-2 rounded-xl bg-brand-600 text-white hover:brightness-110 transition" onclick="generateMealPlan()">📋 Generate Meal Plan</button>
+            <button type="button" class="px-4 py-2 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 border border-slate-200/50 dark:border-slate-700 transition" onclick="addNewRecipe()">➕ Add Recipe</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recipe Filters -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex flex-wrap gap-4 mb-6">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Category:</span>
+            <select class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition">
+              <option>All Categories</option>
+              <option>Breakfast</option>
+              <option>Lunch</option>
+              <option>Dinner</option>
+              <option>Snacks</option>
+              <option>Desserts</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Difficulty:</span>
+            <select class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition">
+              <option>Any Difficulty</option>
+              <option>Easy</option>
+              <option>Medium</option>
+              <option>Advanced</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Time:</span>
+            <select class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition">
+              <option>Any Time</option>
+              <option>Under 30 min</option>
+              <option>30-60 min</option>
+              <option>Over 60 min</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Ingredients:</span>
+            <select class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition">
+              <option>All Ingredients</option>
+              <option>Available Only</option>
+              <option>Missing 1-2 Items</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recipe Statistics -->
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Total Recipes</span><i data-lucide="book-open" class="w-4 h-4 text-slate-400" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold" data-counter="156">0</div>
+          <div class="text-xs text-slate-500 mt-1">In database</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.05s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Available Now</span><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-emerald-600" data-counter="24">0</div>
+          <div class="text-xs text-slate-500 mt-1">With current items</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.1s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Favorites</span><i data-lucide="heart" class="w-4 h-4 text-rose-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-rose-600" data-counter="12">0</div>
+          <div class="text-xs text-slate-500 mt-1">Saved recipes</div>
+        </div>
+        <div class="glass rounded-2xl p-4 shadow-glass animate-scaleIn" style="animation-delay:.15s">
+          <div class="flex items-center justify-between"><span class="text-sm text-slate-500">Avg Rating</span><i data-lucide="star" class="w-4 h-4 text-amber-500" aria-hidden="true"></i></div>
+          <div class="mt-2 text-2xl font-semibold text-amber-600" data-counter="4.3" data-suffix="/5">0</div>
+          <div class="text-xs text-slate-500 mt-1">Community rating</div>
+        </div>
+      </section>
+
+      <!-- Recipes Grid -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="font-semibold text-lg">Available Recipes</h3>
+          <div class="flex items-center gap-2">
+            <button class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Refresh recipes">
+              <i data-lucide="refresh-cw" class="w-4 h-4" aria-hidden="true"></i>
+            </button>
+            <button class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="View as list">
+              <i data-lucide="list" class="w-4 h-4" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="recipesGrid">
+          <!-- Recipe Card 1 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-glass hover:shadow-glass-lg transition-all duration-300">
+            <div class="relative">
+              <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Vegetable Stir Fry" class="w-full h-48 object-cover">
+              <div class="absolute top-3 right-3">
+                <button class="p-2 bg-white/90 dark:bg-slate-900/90 rounded-full hover:bg-white dark:hover:bg-slate-800 transition">
+                  <i data-lucide="heart" class="w-4 h-4 text-rose-400" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="absolute bottom-3 left-3">
+                <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200 text-xs rounded-full">Available</span>
+              </div>
+            </div>
+            <div class="p-4">
+              <h4 class="font-semibold text-lg mb-2">Vegetable Stir Fry</h4>
+              <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Quick and healthy stir fry with fresh vegetables from your inventory</p>
+              <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                <span>⏱️ 25 min</span>
+                <span>🍽️ 2 servings</span>
+                <span>⭐ 4.5</span>
+              </div>
+              <button class="w-full mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl hover:brightness-110 transition">View Recipe</button>
+            </div>
+          </div>
+
+          <!-- Recipe Card 2 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-glass hover:shadow-glass-lg transition-all duration-300">
+            <div class="relative">
+              <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Pasta Carbonara" class="w-full h-48 object-cover">
+              <div class="absolute top-3 right-3">
+                <button class="p-2 bg-white/90 dark:bg-slate-900/90 rounded-full hover:bg-white dark:hover:bg-slate-800 transition">
+                  <i data-lucide="heart" class="w-4 h-4 text-slate-400" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="absolute bottom-3 left-3">
+                <span class="px-2 py-1 bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-200 text-xs rounded-full">1 item missing</span>
+              </div>
+            </div>
+            <div class="p-4">
+              <h4 class="font-semibold text-lg mb-2">Pasta Carbonara</h4>
+              <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Creamy Italian classic with bacon and parmesan cheese</p>
+              <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                <span>⏱️ 35 min</span>
+                <span>🍽️ 4 servings</span>
+                <span>⭐ 4.8</span>
+              </div>
+              <button class="w-full mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl hover:brightness-110 transition">View Recipe</button>
+            </div>
+          </div>
+
+          <!-- Recipe Card 3 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-glass hover:shadow-glass-lg transition-all duration-300">
+            <div class="relative">
+              <img src="https://images.unsplash.com/photo-1484980972926-edee96e0960d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Fruit Smoothie Bowl" class="w-full h-48 object-cover">
+              <div class="absolute top-3 right-3">
+                <button class="p-2 bg-white/90 dark:bg-slate-900/90 rounded-full hover:bg-white dark:hover:bg-slate-800 transition">
+                  <i data-lucide="heart" class="w-4 h-4 text-rose-400" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="absolute bottom-3 left-3">
+                <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200 text-xs rounded-full">Available</span>
+              </div>
+            </div>
+            <div class="p-4">
+              <h4 class="font-semibold text-lg mb-2">Fruit Smoothie Bowl</h4>
+              <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Refreshing breakfast bowl with mixed berries and granola</p>
+              <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                <span>⏱️ 15 min</span>
+                <span>🍽️ 1 serving</span>
+                <span>⭐ 4.2</span>
+              </div>
+              <button class="w-full mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl hover:brightness-110 transition">View Recipe</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Meal Planning -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <h3 class="font-semibold text-lg mb-6">Weekly Meal Plan</h3>
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+          <!-- Monday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Mon</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Oatmeal</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Salad</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Stir Fry</div>
+            </div>
+          </div>
+          <!-- Tuesday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Tue</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Smoothie</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Sandwich</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Pasta</div>
+            </div>
+          </div>
+          <!-- Wednesday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Wed</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Yogurt</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Soup</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Chicken</div>
+            </div>
+          </div>
+          <!-- Thursday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Thu</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Toast</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Wrap</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Fish</div>
+            </div>
+          </div>
+          <!-- Friday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Fri</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Cereal</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Leftovers</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Pizza</div>
+            </div>
+          </div>
+          <!-- Saturday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Sat</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Pancakes</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Burger</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Steak</div>
+            </div>
+          </div>
+          <!-- Sunday -->
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-500 mb-2">Sun</div>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-glass">
+              <div class="text-xs font-medium mb-1">Breakfast</div>
+              <div class="text-xs text-slate-500">Waffles</div>
+              <div class="text-xs font-medium mt-2">Lunch</div>
+              <div class="text-xs text-slate-500">Brunch</div>
+              <div class="text-xs font-medium mt-2">Dinner</div>
+              <div class="text-xs text-slate-500">Roast</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shopping List -->
+      <section class="glass rounded-2xl p-6 shadow-glass animate-fadeUp">
+        <h3 class="font-semibold text-lg mb-6">Shopping List</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="w-4 h-4 text-brand-600 rounded">
+              <span class="text-sm">Parmesan Cheese</span>
+            </div>
+            <span class="text-xs text-slate-500">1 item</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="w-4 h-4 text-brand-600 rounded">
+              <span class="text-sm">Tomatoes</span>
+            </div>
+            <span class="text-xs text-slate-500">2 items</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 hidden">
+    <div class="glass rounded-2xl shadow-glass px-4 py-3 flex items-center gap-3 animate-fadeUp">
+      <i data-lucide="bell-ring" class="w-5 h-5 text-amber-500" aria-hidden="true"></i>
+      <span class="text-sm">You have new alerts. Check the Alerts panel.</span>
+    </div>
+  </div>
+
+  <!-- Inline JS -->
+  <script>
+    // Icons
+    function renderIcons() { lucide.createIcons(); }
+
+    // Theme Persist
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); }
+
+    // Sidebar Toggle (now toggles a single class on <body> for layout-wide changes)
+    const SIDEBAR_KEY = 'sidebar-collapsed';
+    const isCollapsedStored = localStorage.getItem(SIDEBAR_KEY) === 'true';
+    if (isCollapsedStored) document.body.classList.add('sidebar-collapsed');
+
+    document.getElementById('btnSidebar').addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(SIDEBAR_KEY, document.body.classList.contains('sidebar-collapsed'));
+    });
+
+    // Profile Menu
+    const btnProfile = document.getElementById('btnProfile');
+    const menuProfile = document.getElementById('menuProfile');
+    btnProfile.addEventListener('click', (e) => { e.stopPropagation(); menuProfile.classList.toggle('hidden'); });
+    btnProfile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menuProfile.classList.toggle('hidden'); } });
+    document.addEventListener('click', () => menuProfile.classList.add('hidden'));
+
+    // Theme Toggle
+    document.getElementById('btnTheme').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Logout
+    function logout() {
+      try { localStorage.removeItem('theme'); sessionStorage.clear(); } catch (e) { console.warn('Storage clear failed:', e); }
+      window.location.href = 'login.html';
+    }
+    window.logout = logout;
+
+    // Toast
+    const toast = document.getElementById('toast');
+    document.getElementById('btnNotify').addEventListener('click', () => { toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); });
+
+    // Animated Counters
+    function animateCounters() {
+      document.querySelectorAll('[data-counter]').forEach((el) => {
+        const target = parseFloat(el.dataset.counter);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        let current = 0; const duration = 900; const start = performance.now();
+        const step = (now) => {
+          const p = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          current = target * eased;
+          el.textContent = prefix + (Number.isInteger(target) ? Math.round(current) : current.toFixed(1)) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+    }
+    window.addEventListener('load', animateCounters);
+
+    // API Configuration
+    const API_BASE = '/api';
+    
+    // Data fetching functions
+    async function fetchRecipesData() {
+      try {
+        const response = await fetch(`${API_BASE}/recipes-data`);
+        if (!response.ok) throw new Error('Failed to fetch recipes data');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching recipes data:', error);
+        showToast('Error loading recipes data', 'error');
+        return null;
+      }
+    }
+
+    // Generate Meal Plan
+    function generateMealPlan() {
+      alert('Meal plan generation triggered. This would connect to your backend to generate a meal plan based on current inventory.');
+    }
+    window.generateMealPlan = generateMealPlan;
+
+    // Add New Recipe
+    function addNewRecipe() {
+      alert('Add new recipe modal would open here for manual recipe entry.');
+    }
+    window.addNewRecipe = addNewRecipe;
+
+    // Mobile Search
+    document.getElementById('btnMobileSearch').addEventListener('click', () => { alert('Mobile search triggered. Implement modal or search page.'); });
+
+    // Search Demo
+    document.getElementById('search').addEventListener('keydown', (e) => { if (e.key === 'Enter') { alert('Search: ' + e.target.value + '\n(Connect to your backend endpoint)'); } });
+
+    // Init
+    function init() {
+      renderIcons();
+    }
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
